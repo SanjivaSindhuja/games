@@ -1,0 +1,429 @@
+<title>Magic Square</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#0c0e13; --panel:#12151d; --line:#232837; --ink:#e8e4d8; --dim:#6b7183; --amb:#f4b942; --tea:#5fd4c4; }
+  * { box-sizing:border-box; margin:0; -webkit-tap-highlight-color:transparent; }
+  body {
+    min-height:100dvh; background:
+      radial-gradient(60vw 60vw at 20% -10%, rgba(244,185,66,.06), transparent 60%),
+      radial-gradient(50vw 50vw at 90% 110%, rgba(95,212,196,.07), transparent 60%), var(--bg);
+    color:var(--ink); font-family:'IBM Plex Mono',monospace;
+    display:flex; flex-direction:column; align-items:center; padding:56px 12px 32px; touch-action:manipulation;
+  }
+  a.back { position:fixed; top:16px; left:18px; color:var(--dim); font:500 12px 'IBM Plex Mono',monospace; letter-spacing:.2em; text-transform:uppercase; text-decoration:none; }
+  h1 { font-family:'Fraunces',serif; font-weight:300; font-size:clamp(28px,6vw,40px); }
+  #goal { margin:6px 0 14px; font-size:11px; letter-spacing:.24em; text-transform:uppercase; color:var(--dim); text-align:center; }
+  #goal b { color:var(--amb); font-weight:500; }
+  .row { display:flex; gap:6px; flex-wrap:wrap; justify-content:center; margin-bottom:10px; }
+  .pill { font:500 11px 'IBM Plex Mono',monospace; letter-spacing:.14em; text-transform:uppercase; padding:8px 14px; border:1px solid var(--line); border-radius:999px; color:var(--dim); background:transparent; cursor:pointer; transition:color .2s,border-color .2s; }
+  .pill.on { color:var(--tea); border-color:var(--tea); }
+  .pill.amber.on { color:var(--amb); border-color:var(--amb); }
+  #wrap { display:grid; grid-template-columns:auto auto; gap:6px; margin-top:6px; }
+  #board { display:grid; gap:6px; background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:10px; box-shadow:0 26px 50px -20px rgba(0,0,0,.7); }
+  .cell {
+    width:var(--cs); height:var(--cs); display:grid; place-items:center; border:1px solid var(--line); border-radius:10px;
+    font-family:'Fraunces',serif; font-weight:600; font-size:calc(var(--cs)*.44); color:var(--ink);
+    background:linear-gradient(180deg,rgba(255,255,255,.02),transparent); cursor:pointer; transition:border-color .18s, box-shadow .18s;
+  }
+  .cell.filled { animation:pop .22s cubic-bezier(.3,1.5,.5,1); }
+  .cell.sel { border-color:var(--amb); box-shadow:0 0 16px -5px var(--amb); }
+  .cell.hint { border-color:var(--tea); box-shadow:0 0 16px -5px var(--tea); animation:pulse 1s infinite; }
+  .cell.win { border-color:var(--tea); color:var(--tea); box-shadow:0 0 18px -6px var(--tea); }
+  @keyframes pop { from { transform:scale(.55); opacity:0; } }
+  @keyframes pulse { 50% { box-shadow:0 0 26px -3px var(--tea); } }
+  #chipsR { display:grid; gap:6px; padding:10px 0; }
+  #chipsB { display:flex; gap:6px; padding:0 10px; }
+  .chip { min-width:40px; height:22px; display:grid; place-items:center; padding:0 6px; font-size:11px; border:1px solid var(--line); border-radius:999px; color:var(--dim); transition:all .2s; }
+  #chipsR .chip { height:var(--cs); }
+  #chipsB .chip { width:var(--cs); }
+  .chip.ok { color:var(--tea); border-color:var(--tea); background:rgba(95,212,196,.08); }
+  .chip.over { color:var(--amb); border-color:var(--amb); background:rgba(244,185,66,.08); }
+  #diag { margin-top:8px; display:flex; gap:8px; justify-content:center; font-size:11px; }
+  #tray { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin-top:14px; max-width:420px; }
+  .num { width:44px; height:44px; display:grid; place-items:center; font-family:'Fraunces',serif; font-weight:600; font-size:19px; border:1px solid var(--line); border-radius:10px; color:var(--ink); background:transparent; cursor:pointer; transition:all .18s; }
+  .num.used { opacity:.22; pointer-events:none; }
+  .num.sel { border-color:var(--amb); color:var(--amb); box-shadow:0 0 16px -5px var(--amb); }
+  #hud { display:flex; gap:14px; align-items:center; justify-content:center; margin-top:14px; font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim); flex-wrap:wrap; }
+  .ibtn { min-width:44px; height:36px; padding:0 12px; border:1px solid var(--line); border-radius:999px; background:transparent; color:var(--dim); font:500 11px 'IBM Plex Mono',monospace; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; }
+  .ibtn:hover { color:var(--ink); border-color:var(--dim); }
+  #banner { text-align:center; margin-top:14px; min-height:30px; }
+  #banner .big { font-family:'Fraunces',serif; font-weight:300; font-size:24px; color:var(--tea); }
+  #banner .sub { font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:var(--dim); margin-top:4px; }
+  /* overlays */
+  .overlay { position:fixed; inset:0; background:rgba(12,14,19,.85); display:flex; align-items:flex-end; justify-content:center; padding:18px; z-index:50; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:18px; max-width:420px; width:100%; }
+  .card .step { font-size:10px; letter-spacing:.25em; color:var(--tea); text-transform:uppercase; }
+  .card h3 { font-family:'Fraunces',serif; font-weight:300; font-size:20px; margin:8px 0 6px; }
+  .card p { font-size:12px; color:var(--dim); line-height:1.75; }
+  .card .btns { display:flex; gap:8px; margin-top:14px; flex-wrap:wrap; }
+  .btn { font:500 11px 'IBM Plex Mono',monospace; letter-spacing:.2em; text-transform:uppercase; padding:10px 20px; border:1px solid var(--line); border-radius:999px; color:var(--ink); background:transparent; cursor:pointer; }
+  .btn.primary { border-color:var(--tea); color:var(--tea); }
+  #spot { position:fixed; border:2px solid var(--tea); border-radius:12px; box-shadow:0 0 0 4000px rgba(12,14,19,.6), 0 0 24px -4px var(--tea); z-index:49; pointer-events:none; transition:all .3s; animation:pulse 1.6s infinite; }
+  .stat-row { display:flex; justify-content:space-between; font-size:12px; padding:7px 0; border-bottom:1px solid var(--line); }
+  .stat-row b { color:var(--tea); font-weight:500; }
+  .confetti { position:fixed; width:7px; height:7px; border-radius:2px; z-index:60; pointer-events:none; }
+  @media (prefers-reduced-motion: reduce) { *, .cell.filled, .confetti { animation:none !important; transition:none !important; } }
+</style>
+<a class="back" href="index.html">← Arcade</a>
+<h1>🧙 Magic Square</h1>
+<div id="goal">Make every line add up to <b id="target">15</b> — that's the magic number!</div>
+<div class="row" id="modes">
+  <button class="pill on" data-mode="zen">Zen</button>
+  <button class="pill" data-mode="time">Time Attack</button>
+  <button class="pill" data-mode="broken">Broken</button>
+  <button class="pill" data-mode="hard">Hardcore</button>
+  <button class="pill amber" data-mode="daily">Daily</button>
+</div>
+<div class="row" id="sizes">
+  <button class="pill on" data-n="3">3×3</button>
+  <button class="pill" data-n="4">4×4</button>
+  <button class="pill" data-n="5">5×5</button>
+</div>
+<div id="wrap">
+  <div id="board"></div>
+  <div id="chipsR"></div>
+  <div id="chipsB"></div>
+</div>
+<div id="diag"></div>
+<div id="tray"></div>
+<div id="hud">
+  <span id="timer">0:00</span>
+  <button class="ibtn" id="undoB">Undo</button>
+  <button class="ibtn" id="hintB">Hint</button>
+  <button class="ibtn" id="newB">New</button>
+  <button class="ibtn" id="soundB">🔊</button>
+  <button class="ibtn" id="statsB">Stats</button>
+  <button class="ibtn" id="tutB">?</button>
+</div>
+<div id="banner"></div>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const LS = k => 'msq-' + k;
+  let N = 3, mode = 'zen', cells = [], solution = [], selNum = null, selCell = null;
+  let undoStack = [], hintPenalty = 0, startT = 0, timerId = 0, over = false, moves = 0;
+  let sound = localStorage.getItem(LS('sound')) !== 'off';
+
+  const MC = n => n * (n * n + 1) / 2;
+  const dayNum = Math.floor(Date.now() / 864e5);
+
+  // seeded rng (mulberry32)
+  function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+  // magic square construction
+  function magic(n, rand) {
+    let m = Array.from({length:n}, () => Array(n).fill(0));
+    if (n % 2 === 1) { // siamese
+      let i = 0, j = (n - 1) / 2;
+      for (let k = 1; k <= n * n; k++) {
+        m[i][j] = k;
+        const ni = (i - 1 + n) % n, nj = (j + 1) % n;
+        if (m[ni][nj]) i = (i + 1) % n; else { i = ni; j = nj; }
+      }
+    } else { // doubly even (n=4)
+      let k = 1;
+      for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+        const keep = (i % 4 === j % 4) || ((i % 4) + (j % 4) === 3);
+        m[i][j] = keep ? n * n + 1 - k : k; k++;
+      }
+    }
+    // random symmetry transforms for variety (preserve magic property)
+    const flat = () => m.flat();
+    for (let t = 0; t < 3; t++) {
+      const r = Math.floor(rand() * 3);
+      if (r === 0) m = m[0].map((_, j) => m.map(row => row[j]).reverse());           // rotate 90
+      else if (r === 1) m = m.map(row => [...row].reverse());                        // mirror H
+      else m = [...m].reverse();                                                     // mirror V
+    }
+    return m.flat();
+  }
+
+  function fmt(s) { return Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0'); }
+  function beep(f, d = .07) {
+    if (!sound) return;
+    try {
+      window.AC = window.AC || new (window.AudioContext || window.webkitAudioContext)();
+      const o = AC.createOscillator(), g = AC.createGain();
+      o.frequency.value = f; o.type = 'sine'; g.gain.value = .08;
+      g.gain.exponentialRampToValueAtTime(.001, AC.currentTime + d);
+      o.connect(g); g.connect(AC.destination); o.start(); o.stop(AC.currentTime + d);
+    } catch (e) {}
+  }
+
+  function newGame() {
+    over = false; selNum = selCell = null; undoStack = []; hintPenalty = 0; moves = 0; prevOk = 0;
+    $('banner').innerHTML = '';
+    const isDaily = mode === 'daily';
+    if (isDaily) N = 3 + (dayNum % 3);
+    document.querySelectorAll('#sizes .pill').forEach(p => p.classList.toggle('on', +p.dataset.n === N));
+    $('sizes').style.opacity = isDaily ? .35 : 1;
+    $('sizes').style.pointerEvents = isDaily ? 'none' : 'auto';
+    const rand = rng(isDaily ? dayNum : (Math.random() * 1e9) | 0);
+    solution = magic(N, rand);
+    if (mode === 'broken' || isDaily) {
+      cells = [...solution];
+      const swaps = N; // N swapped pairs
+      for (let s = 0; s < swaps; s++) {
+        const a = Math.floor(rand() * N * N); let b = Math.floor(rand() * N * N);
+        while (b === a) b = Math.floor(rand() * N * N);
+        [cells[a], cells[b]] = [cells[b], cells[a]];
+      }
+      if (isWon()) [cells[0], cells[1]] = [cells[1], cells[0]]; // ensure not pre-solved
+    } else {
+      cells = Array(N * N).fill(0);
+    }
+    $('target').textContent = MC(N);
+    prevOk = okCount();
+    clearInterval(timerId); startT = Date.now();
+    timerId = setInterval(() => { if (!over) $('timer').textContent = fmt((Date.now() - startT) / 1000 + hintPenalty); }, 250);
+    render();
+  }
+
+  function sums() {
+    const r = [], c = [];
+    for (let i = 0; i < N; i++) {
+      r.push(cells.slice(i * N, i * N + N).reduce((a, b) => a + b, 0));
+      c.push(cells.filter((_, k) => k % N === i).reduce((a, b) => a + b, 0));
+    }
+    let d1 = 0, d2 = 0;
+    for (let i = 0; i < N; i++) { d1 += cells[i * N + i]; d2 += cells[i * N + (N - 1 - i)]; }
+    return { r, c, d1, d2 };
+  }
+  const isFull = () => cells.every(v => v);
+  function isWon() {
+    if (!isFull()) return false;
+    const s = sums(), t = MC(N);
+    return s.r.every(v => v === t) && s.c.every(v => v === t) && s.d1 === t && s.d2 === t;
+  }
+
+  function render() {
+    const cs = Math.min(72, Math.floor((Math.min(innerWidth, 460) - 90) / N) - 8);
+    document.documentElement.style.setProperty('--cs', cs + 'px');
+    const board = $('board');
+    board.style.gridTemplateColumns = `repeat(${N}, ${cs}px)`;
+    board.innerHTML = '';
+    cells.forEach((v, i) => {
+      const d = document.createElement('button');
+      d.className = 'cell' + (v ? ' filled' : '') + (selCell === i ? ' sel' : '');
+      d.textContent = v || '';
+      d.setAttribute('aria-label', 'cell ' + (i + 1) + (v ? ' = ' + v : ' empty'));
+      d.onclick = () => tapCell(i);
+      board.appendChild(d);
+    });
+    // chips
+    const hideChips = mode === 'hard' && !isFull();
+    const s = sums(), t = MC(N);
+    const chip = v => { const e = document.createElement('span'); e.className = 'chip' + (hideChips ? '' : v === t ? ' ok' : v > t ? ' over' : ''); e.textContent = hideChips ? '?' : v; return e; };
+    const cr = $('chipsR'); cr.innerHTML = ''; cr.style.gridTemplateRows = `repeat(${N}, var(--cs))`;
+    s.r.forEach(v => cr.appendChild(chip(v)));
+    const cb = $('chipsB'); cb.innerHTML = '';
+    s.c.forEach(v => cb.appendChild(chip(v)));
+    const dg = $('diag'); dg.innerHTML = '';
+    [['↘', s.d1], ['↙', s.d2]].forEach(([lab, v]) => {
+      const e = chip(v); e.textContent = lab + ' ' + (hideChips ? '?' : v); dg.appendChild(e);
+    });
+    // tray
+    const tray = $('tray'); tray.innerHTML = '';
+    if (mode !== 'broken' && mode !== 'daily') {
+      for (let v = 1; v <= N * N; v++) {
+        const b = document.createElement('button');
+        b.className = 'num' + (cells.includes(v) ? ' used' : '') + (selNum === v ? ' sel' : '');
+        b.textContent = v;
+        b.onclick = () => { selNum = selNum === v ? null : v; selCell = null; beep(520); render(); };
+        tray.appendChild(b);
+      }
+    }
+    $('hintB').style.display = mode === 'hard' ? 'none' : '';
+  }
+
+  function push() { undoStack.push([...cells]); if (undoStack.length > 100) undoStack.shift(); }
+
+  function tapCell(i) {
+    if (over) return;
+    if (selNum) {                       // place from tray
+      if (cells[i]) return;
+      push(); cells[i] = selNum; selNum = null; moves++; beep(660); after();
+    } else if (selCell === null) {
+      if (cells[i]) { selCell = i; beep(520); render(); }
+    } else if (selCell === i) {         // second tap same cell
+      if (mode === 'broken' || mode === 'daily') { selCell = null; render(); return; }
+      push(); cells[i] = 0; selCell = null; beep(380); after(); // remove back to tray
+    } else {                            // swap two cells
+      push();
+      [cells[selCell], cells[i]] = [cells[i], cells[selCell]];
+      selCell = null; moves++; beep(660); after();
+    }
+  }
+
+  let prevOk = 0;
+  function okCount() {
+    const s = sums(), t = MC(N);
+    let k = s.r.filter(v => v === t).length + s.c.filter(v => v === t).length;
+    if (s.d1 === t) k++; if (s.d2 === t) k++;
+    return k;
+  }
+  const PRAISE = ['Nice one! ✨', 'Magic! 🪄', 'Line complete! ⭐', 'You got it! 🎯', 'Brilliant! 💫', 'Wizard move! 🧙'];
+  function after() {
+    render();
+    const k = okCount();
+    if (k > prevOk && !isWon()) {
+      toast(PRAISE[Math.floor(Math.random() * PRAISE.length)]);
+      beep(880, .1); setTimeout(() => beep(1100, .1), 90);
+    }
+    prevOk = k;
+    if (isWon()) win();
+  }
+  function toast(msg) {
+    const t = document.createElement('div');
+    t.textContent = msg;
+    Object.assign(t.style, { position: 'fixed', top: '14%', left: '50%', transform: 'translateX(-50%) scale(.7)', zIndex: 70,
+      fontFamily: "'Fraunces',serif", fontSize: '26px', color: 'var(--tea)', textShadow: '0 0 24px rgba(95,212,196,.5)',
+      transition: 'all .3s cubic-bezier(.3,1.5,.5,1)', opacity: 0, pointerEvents: 'none' });
+    document.body.appendChild(t);
+    requestAnimationFrame(() => { t.style.opacity = 1; t.style.transform = 'translateX(-50%) scale(1)'; });
+    setTimeout(() => { t.style.opacity = 0; t.style.transform = 'translateX(-50%) translateY(-16px)'; }, 1100);
+    setTimeout(() => t.remove(), 1500);
+  }
+
+  function win() {
+    over = true; clearInterval(timerId);
+    const secs = (Date.now() - startT) / 1000 + hintPenalty;
+    document.querySelectorAll('.cell').forEach((c, i) => setTimeout(() => c.classList.add('win'), i * 40));
+    if (navigator.vibrate) navigator.vibrate([40, 60, 80]);
+    [880, 1100, 1320].forEach((f, i) => setTimeout(() => beep(f, .15), i * 130));
+    confetti();
+    const key = LS('best-' + mode + '-' + N);
+    const prev = +localStorage.getItem(key) || Infinity;
+    const isBest = secs < prev;
+    if (isBest) localStorage.setItem(key, secs);
+    localStorage.setItem(LS('solves'), (+localStorage.getItem(LS('solves')) || 0) + 1);
+    const WINS = ['You\'re a Math Wizard! 🧙‍♂️', 'Magic Master! 🌟', 'Genius Alert! 🚨', 'Number Ninja! 🥷', 'Spellbinding! ✨', 'Champion! 🏆'];
+    const par = { 3: 90, 4: 240, 5: 480 }[N];
+    const stars = secs < par / 2 ? '⭐⭐⭐' : secs < par ? '⭐⭐' : '⭐';
+    let extra = '';
+    if (mode === 'daily') {
+      const last = +localStorage.getItem(LS('daily-last')) || 0;
+      let streak = +localStorage.getItem(LS('daily-streak')) || 0;
+      if (last !== dayNum) { streak = last === dayNum - 1 ? streak + 1 : 1; localStorage.setItem(LS('daily-streak'), streak); localStorage.setItem(LS('daily-last'), dayNum); }
+      extra = `<button class="btn primary" id="shareB">Share</button>`;
+      setTimeout(() => { $('shareB').onclick = () => {
+        navigator.clipboard.writeText(`Magic Square #${dayNum % 1000} · ${N}×${N} · ${fmt(secs)} 🟩`);
+        $('shareB').textContent = 'Copied!';
+      }; });
+    }
+    $('banner').innerHTML = `<div class="big">${WINS[Math.floor(Math.random() * WINS.length)]}</div><div class="sub">${stars} · ${fmt(secs)}${isBest ? ' · new best!' : ''}${mode === 'broken' || mode === 'daily' ? ' · ' + moves + ' moves' : ''}</div><div style="margin-top:10px">${extra}</div>`;
+  }
+
+  function confetti() {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    for (let i = 0; i < 40; i++) {
+      const e = document.createElement('div');
+      e.className = 'confetti';
+      e.style.background = Math.random() < .5 ? 'var(--amb)' : 'var(--tea)';
+      e.style.left = 10 + Math.random() * 80 + 'vw';
+      e.style.top = '-10px';
+      document.body.appendChild(e);
+      const fall = e.animate([
+        { transform: 'translateY(0) rotate(0)' },
+        { transform: `translateY(${innerHeight + 30}px) rotate(${360 + Math.random() * 360}deg)` }
+      ], { duration: 1800 + Math.random() * 1600, easing: 'cubic-bezier(.2,.6,.4,1)', delay: Math.random() * 400 });
+      fall.onfinish = () => e.remove();
+    }
+  }
+
+  // hint: reveal one cell from reference solution
+  function hint() {
+    if (over) return;
+    // prefer an empty cell whose solution number is free
+    let idx = cells.findIndex((v, i) => !v && !cells.includes(solution[i]));
+    if (idx === -1) idx = cells.findIndex((v, i) => v !== solution[i]); // else flag a misplaced cell
+    if (idx === -1) return;
+    const el = $('board').children[idx];
+    el.classList.add('hint');
+    setTimeout(() => el.classList.remove('hint'), 2200);
+    if (mode === 'time' || mode === 'daily') hintPenalty += 10;
+    if (!cells[idx]) { selNum = solution[idx]; render(); $('board').children[idx].classList.add('hint'); }
+    beep(440);
+  }
+
+  function undo() { if (undoStack.length && !over) { cells = undoStack.pop(); selNum = selCell = null; beep(380); render(); } }
+
+  // stats overlay
+  function showStats() {
+    const rows = [];
+    ['zen', 'time', 'broken', 'hard', 'daily'].forEach(m => [3, 4, 5].forEach(n => {
+      const v = localStorage.getItem(LS('best-' + m + '-' + n));
+      if (v) rows.push(`<div class="stat-row"><span>${m} ${n}×${n}</span><b>${fmt(+v)}</b></div>`);
+    }));
+    overlay(`<h3>Stats</h3>
+      <div class="stat-row"><span>Total solves</span><b>${+localStorage.getItem(LS('solves')) || 0}</b></div>
+      <div class="stat-row"><span>Daily streak</span><b>${+localStorage.getItem(LS('daily-streak')) || 0} 🔥</b></div>
+      ${rows.join('') || '<p style="margin-top:10px">No best times yet — go solve one!</p>'}
+      <div class="btns"><button class="btn primary" data-close>Close</button></div>`);
+  }
+
+  function overlay(html) {
+    const o = document.createElement('div');
+    o.className = 'overlay';
+    o.innerHTML = `<div class="card">${html}</div>`;
+    o.onclick = e => { if (e.target === o || e.target.dataset.close !== undefined && e.target.hasAttribute('data-close')) o.remove(); };
+    document.body.appendChild(o);
+    return o;
+  }
+
+  // ---- tutorial ----
+  const TUT = [
+    { t: 'Welcome, young wizard! 🧙', p: () => `Your quest: fill the grid so every row, column and both diagonals add up to <b style="color:var(--amb)">${MC(N)}</b>. That's the magic number!`, spot: '#goal' },
+    { t: 'Cast your numbers', p: () => 'Tap a number below, then tap an empty square — poof, it\'s placed! Tap a placed number twice to take it back. Tap two placed numbers to swap them.', spot: '#tray' },
+    { t: 'Watch the magic bubbles', p: () => 'The little bubbles next to each line count its total. Green-blue = perfect ✨, gold = too big, grey = keep adding. The ↘ ↙ bubbles are the diagonals!', spot: '#chipsR' },
+    { t: 'Pick your adventure', p: () => 'Zen = chill. Time Attack = race the clock! Broken = fix a scrambled square. Hardcore = for true wizards (bubbles hidden!). Daily = one special puzzle a day, keep your streak! 🔥', spot: '#modes' },
+  ];
+  let tutI = 0, tutO = null;
+  function tutorial() {
+    tutI = 0; showTutStep();
+  }
+  function showTutStep() {
+    if (tutO) tutO.remove(); positionSpot(null);
+    if (tutI >= TUT.length) { localStorage.setItem(LS('tut'), '1'); return; }
+    const s = TUT[tutI];
+    positionSpot(s.spot);
+    tutO = overlay(`<div class="step">Step ${tutI + 1} of ${TUT.length}</div><h3>${s.t}</h3><p>${s.p()}</p>
+      <div class="btns"><button class="btn primary" id="tnext">${tutI === TUT.length - 1 ? 'Play' : 'Next'}</button>
+      <button class="btn" id="tskip">Skip tour</button></div>`);
+    tutO.querySelector('#tnext').onclick = e => { e.stopPropagation(); tutI++; showTutStep(); };
+    tutO.querySelector('#tskip').onclick = e => { e.stopPropagation(); tutI = TUT.length; showTutStep(); };
+  }
+  function positionSpot(sel) {
+    let sp = $('spot');
+    if (!sel) { if (sp) sp.remove(); return; }
+    if (!sp) { sp = document.createElement('div'); sp.id = 'spot'; document.body.appendChild(sp); }
+    const r = document.querySelector(sel).getBoundingClientRect();
+    Object.assign(sp.style, { left: r.left - 8 + 'px', top: r.top - 8 + 'px', width: r.width + 16 + 'px', height: r.height + 16 + 'px' });
+  }
+
+  // ---- wiring ----
+  $('modes').onclick = e => {
+    const b = e.target.closest('[data-mode]'); if (!b) return;
+    mode = b.dataset.mode;
+    document.querySelectorAll('#modes .pill').forEach(p => p.classList.toggle('on', p === b));
+    newGame();
+  };
+  $('sizes').onclick = e => {
+    const b = e.target.closest('[data-n]'); if (!b) return;
+    N = +b.dataset.n; newGame();
+  };
+  $('undoB').onclick = undo;
+  $('hintB').onclick = hint;
+  $('newB').onclick = newGame;
+  $('statsB').onclick = showStats;
+  $('tutB').onclick = tutorial;
+  $('soundB').onclick = () => { sound = !sound; localStorage.setItem(LS('sound'), sound ? 'on' : 'off'); $('soundB').textContent = sound ? '🔊' : '🔇'; };
+  $('soundB').textContent = sound ? '🔊' : '🔇';
+  addEventListener('resize', render);
+
+  newGame();
+  if (!localStorage.getItem(LS('tut'))) setTimeout(tutorial, 500);
+})();
+</script>
