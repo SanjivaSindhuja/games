@@ -60,7 +60,10 @@
   .card .btns { display:flex; gap:8px; margin-top:14px; flex-wrap:wrap; }
   .btn { font:500 11px 'IBM Plex Mono',monospace; letter-spacing:.2em; text-transform:uppercase; padding:10px 20px; border:1px solid var(--line); border-radius:999px; color:var(--ink); background:transparent; cursor:pointer; }
   .btn.primary { border-color:var(--tea); color:var(--tea); }
-  #spot { position:fixed; border:2px solid var(--tea); border-radius:12px; box-shadow:0 0 0 4000px rgba(12,14,19,.6), 0 0 24px -4px var(--tea); z-index:49; pointer-events:none; transition:all .3s; animation:pulse 1.6s infinite; }
+  #spot { position:fixed; border:2px solid var(--tea); border-radius:12px; box-shadow:0 0 0 4000px rgba(12,14,19,.55), 0 0 24px -4px var(--tea); z-index:49; pointer-events:none; transition:all .3s; animation:spotpulse 1.6s infinite; }
+  @keyframes spotpulse { 50% { box-shadow:0 0 0 4000px rgba(12,14,19,.55), 0 0 34px 0 var(--tea); } }
+  .overlay.tut-mode { background:transparent; pointer-events:none; }
+  .overlay.tut-mode .card { pointer-events:auto; }
   .stat-row { display:flex; justify-content:space-between; font-size:12px; padding:7px 0; border-bottom:1px solid var(--line); }
   .stat-row b { color:var(--tea); font-weight:500; }
   .confetti { position:fixed; width:7px; height:7px; border-radius:2px; z-index:60; pointer-events:none; }
@@ -392,6 +395,7 @@
     tutO = overlay(`<div class="step">Step ${tutI + 1} of ${TUT.length}</div><h3>${s.t}</h3><p>${s.p()}</p>
       <div class="btns"><button class="btn primary" id="tnext">${tutI === TUT.length - 1 ? 'Play' : 'Next'}</button>
       <button class="btn" id="tskip">Skip tour</button></div>`);
+    tutO.classList.add('tut-mode');
     tutO.querySelector('#tnext').onclick = e => { e.stopPropagation(); tutI++; showTutStep(); };
     tutO.querySelector('#tskip').onclick = e => { e.stopPropagation(); tutI = TUT.length; showTutStep(); };
   }
